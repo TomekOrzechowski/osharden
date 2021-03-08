@@ -1,5 +1,38 @@
 #!/bin/bash
 
+function sysctl () {
+  local file=$1
+  local parameter=$2
+  local value=$3
+  local r1=$(echo "$parameter" | sed 's/\./\\./g')
+
+  [ -d /etc/sysctl.d ] || mkdir -p /etc/sysctl.d
+  [ -r /etc/sysctl.d/$file ] || touch /etc/sysctl.d/$file
+  for f in /etc/sysctl.conf /etc/sysctl.d/*; do
+    if [ -f "$f" ] && grep -q "^$r1[[:blank:]]*=" "$f"; then
+        if [ "$f" == "/etc/sysctl.d/$file" ]; then
+            grep "^$r1[[:blank:]]*=[[:blank:]]*" "$f" |\
+              grep -q -v "=[[:blank:]]*$value$" && \
+              sed -i "s/^\($r1\)[[:blank:]]*=.*/\1=$value/" "$f"
+        else
+            sed -i "s/^\($r1[[:blank:]]*=.*\)/#\1/" "$f"
+        fi
+    fi
+  done
+
+  if ! grep -q "^$r1[[:blank:]]*=" /etc/sysctl.conf /etc/sysctl.d/*; then
+    echo $parameter=$value >> /etc/sysctl.d/$file
+  fi
+
+}
+
+sysctl 10-network-security.conf net.ipv4.conf.default.rp_filter 1
+sysctl 10-network-security.conf net.ipv4.conf.all.rp_filter 1
+sysctl 10-network-security.conf net.ipv4.conf.default.secure_redirects 0
+sysctl 10-network-security.conf net.ipv4.conf.default.accept_redirects 0
+sysctl 10-network-security.conf net.ipv4.conf.all.log_martians 1
+exit
+
 # 1.
 if [ -f /etc/sysconfig/network ]; then
     if ! grep -q '^NOZEROCONF[[:blank:]]*=.*' /etc/sysconfig/network; then
@@ -8,27 +41,6 @@ if [ -f /etc/sysconfig/network ]; then
 	grep '^NOZEROCONF[[:blank:]]*=.*' /etc/sysconfig/network | grep -q -v 'yes' &&\
           sed -i 's/^\(NOZEROCONF[[:blank:]]*=[[:blank:]]*\).*/\1yes/' /etc/sysconfig/network
     fi
-fi
-
-# 2.
-# 3.
-[ -d /etc/sysctl.d ] || mkdir -p /etc/sysctl.d
-[ -r /etc/sysctl.d/10-network-security.conf ] || touch /etc/sysctl.d/10-network-security.conf
-for f in /etc/sysctl.conf /etc/sysctl.d/*; do
-    if [ -f "$f" ] && grep -q '^net\.ipv4\.conf\.\(default\|all\)\.rp_filter[[:blank:]]*=' "$f"; then
-        if [ "$f" == "/etc/sysctl.d/10-network-security.conf" ]; then
-            grep '^net\.ipv4\.conf\.\(default\|all\)\.rp_filter[[:blank:]]*=[[:blank:]]*' "$f" |\
-	      grep -q -v '=[[:blank:]]*1$' && \
-              sed -i 's/^\(net\.ipv4\.conf\.\(default\|all\)\.rp_filter\)[[:blank:]]*=.*/\1=1/' "$f"
-        else
-            sed -i 's/^\(net\.ipv4\.conf\.\(default\|all\)\.rp_filter[[:blank:]]*=.*\)/#\1/' "$f"
-        fi
-    fi
-done
-
-if ! grep -q '^net\.ipv4\.conf\.\(default\|all\)\.rp_filter[[:blank:]]*=' /etc/sysctl.conf /etc/sysctl.d/*; then
-        echo net.ipv4.conf.default.rp_filter=1 >> /etc/sysctl.d/10-network-security.conf
-        echo net.ipv4.conf.all.rp_filter=1 >> /etc/sysctl.d/10-network-security.conf
 fi
 
 # 4.
