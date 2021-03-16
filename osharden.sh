@@ -62,7 +62,6 @@ modprobe_conf filesystems.conf install jffs2 /bin/true
 modprobe_conf filesystems.conf install hfsplus /bin/true
 modprobe_conf filesystems.conf install freevxfs /bin/true
 modprobe_conf filesystems.conf install rds /bin/true
-exit
 
 # 1.
 if [ -f /etc/sysconfig/network ]; then
@@ -91,7 +90,7 @@ for f in /etc/ssh/sshd_config /etc/ssh/ssh_config.d/*; do
     fi
 done
 
-grep -q '^[[:blank:]]*HostbasedAuthentication[[:blank:]]\+' /etc/ssh/sshd_config /etc/ssh/ssh_config.d/* ||\
+grep -q -r '^[[:blank:]]*HostbasedAuthentication[[:blank:]]\+' /etc/ssh/sshd_config* ||\
     echo 'HostbasedAuthentication no' >> /etc/ssh/sshd_config
 
 # 6.
@@ -102,7 +101,7 @@ for f in /etc/ssh/sshd_config /etc/ssh/ssh_config.d/*; do
     fi
 done
 
-grep -q '^[[:blank:]]*IgnoreRhosts[[:blank:]]\+' /etc/ssh/sshd_config /etc/ssh/ssh_config.d/* ||\
+grep -q -r '^[[:blank:]]*IgnoreRhosts[[:blank:]]\+' /etc/ssh/sshd_config* ||\
     echo 'IgnoreRhosts yes' >> /etc/ssh/sshd_config
 
 # 7.
@@ -127,7 +126,7 @@ for f in /etc/ssh/sshd_config /etc/ssh/ssh_config.d/*; do
     fi
 done
 
-grep -q '^[[:blank:]]*Protocol[[:blank:]]\+' /etc/ssh/sshd_config /etc/ssh/ssh_config.d/* ||\
+grep -q -r '^[[:blank:]]*Protocol[[:blank:]]\+' /etc/ssh/sshd_config* ||\
     echo 'Protocol 2' >> /etc/ssh/sshd_config
 
 # 10.
@@ -146,12 +145,13 @@ for f in /etc/ssh/sshd_config /etc/ssh/ssh_config.d/*; do
     fi
 done
 
-grep -q '^[[:blank:]]*PermitEmptyPasswords[[:blank:]]\+' /etc/ssh/sshd_config /etc/ssh/ssh_config.d/* ||\
+grep -q -r '^[[:blank:]]*PermitEmptyPasswords[[:blank:]]\+' /etc/ssh/sshd_config* ||\
     echo 'PermitEmptyPasswords no' >> /etc/ssh/sshd_config
 
 # 12.
-if ! grep -q '^[[:blank:]]*\(AllowUsers\|AllowGroups\|DenyUsers\|DenyGroups\)[[:blank:]]\+' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*; then
-	echo Ensure SSH access is limited !
+if ! grep -q -r '^[[:blank:]]*\(AllowUsers\|AllowGroups\|DenyUsers\|DenyGroups\)[[:blank:]]\+' /etc/ssh/sshd_config*; then
+    echo Ensure SSH access is limited !
+    echo 'DenyUsers someUser' >> /etc/ssh/sshd_config
 fi
 
 # su
@@ -202,3 +202,6 @@ done
 
 grep -q '^[[:blank:]]*Banner[[:blank:]]\+' /etc/ssh/sshd_config /etc/ssh/ssh_config.d/* ||\
     echo 'Banner = /etc/issue.net' >> /etc/ssh/sshd_config
+
+# end
+echo Reboot suggested.
